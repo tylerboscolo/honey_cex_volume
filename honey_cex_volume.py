@@ -2,10 +2,15 @@ import requests
 import pandas as pd
 from datetime import datetime
 import time
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configuration
-COIN_ID = "hivemapper" 
-API_KEY = "CG-kDtkXNQZfGXQb3Hs67AQR9VZ"
+COIN_ID = os.getenv("COIN_ID", "hivemapper")
+API_KEY = os.getenv("COINGECKO_API_KEY")
 
 # Known centralized exchanges
 KNOWN_CEXS = {
@@ -14,14 +19,18 @@ KNOWN_CEXS = {
     'bitstamp', 'bithumb', 'upbit', 'bitget', 'htx', 'bitmart'
 }
 
-def get_all_exchanges(coin_id):
+def get_all_exchanges(coin_id, api_key=None):
     """
     Get all exchanges where the token trades and categorize as CEX or DEX
     """
     url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/tickers"
     
+    headers = {}
+    if api_key:
+        headers["X-CG-Pro-API-Key"] = api_key
+    
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
         
@@ -58,14 +67,18 @@ def get_all_exchanges(coin_id):
         print(f"Error fetching exchange data: {e}")
         return None
 
-def get_current_cex_volume(coin_id):
+def get_current_cex_volume(coin_id, api_key=None):
     """
     Get current 24h CEX volume breakdown
     """
     url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/tickers"
     
+    headers = {}
+    if api_key:
+        headers["X-CG-Pro-API-Key"] = api_key
+    
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
         
@@ -105,7 +118,7 @@ def get_current_cex_volume(coin_id):
         print(f"Error fetching volume data: {e}")
         return None
 
-def get_historical_total_volume(coin_id, start_date, end_date):
+def get_historical_total_volume(coin_id, start_date, end_date, api_key=None):
     """
     Get historical total volume (CEX + DEX combined)
     This is what we'll use to estimate historical CEX volume
@@ -121,8 +134,12 @@ def get_historical_total_volume(coin_id, start_date, end_date):
         'to': end_timestamp
     }
     
+    headers = {}
+    if api_key:
+        headers["X-CG-Pro-API-Key"] = api_key
+    
     try:
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, headers=headers)
         response.raise_for_status()
         data = response.json()
         
@@ -156,7 +173,7 @@ def main():
     print("Step 1: Identifying where HONEY trades...")
     print("-"*70)
     
-    exchanges = get_all_exchanges(COIN_ID)
+    exchanges = get_all_exchanges(COIN_ID, API_KEY)
     
     if exchanges:
         print(f"\nCentralized Exchanges ({len(exchanges['cex'])}):")
@@ -173,7 +190,7 @@ def main():
     print("\nStep 2: Getting current 24h volume breakdown...")
     print("-"*70)
     
-    current_volumes = get_current_cex_volume(COIN_ID)
+    current_volumes = get_current_cex_volume(COIN_ID, API_KEY)
     
     cex_ratio = 0  # Initialize
     cex_percentage = 0  # Initialize
@@ -214,7 +231,7 @@ def main():
     for month_name, start_date, end_date in months:
         print(f"\nFetching {month_name} 2025...")
         
-        df = get_historical_total_volume(COIN_ID, start_date, end_date)
+        df = get_historical_total_volume(COIN_ID, start_date, end_date, API_KEY)
         
         if df is not None and len(df) > 0:
             total_volume = df['volume_usd'].sum()
