@@ -16,7 +16,7 @@ A Python script to analyze centralized exchange (CEX) volume for the HONEY token
 2. **Create a virtual environment** (recommended):
    ```bash
    python3 -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source venv/bin/activate 
    ```
 
 3. **Install dependencies**:
